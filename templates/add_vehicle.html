@@ -1,60 +1,68 @@
-{% extends 'base.html' %}
-{% block title %}Add Vehicle{% endblock %}
+{% extends "base.html" %}
 {% block content %}
+<div class="container">
     <h2>Add Vehicle</h2>
     <form method="POST">
         {{ form.hidden_tag() }}
-        <div class="mb-3">
-            {{ form.make.label }} {{ form.make(class="form-control", id="make-select") }}
+        <div class="form-group">
+            {{ form.make.label }} {{ form.make(class="form-control") }}
         </div>
-        <div class="mb-3">
-            {{ form.model.label }} {{ form.model(class="form-control", id="model-select") }}
+        <div class="form-group">
+            {{ form.model.label }} {{ form.model(class="form-control") }}
         </div>
-        <div class="mb-3">
-            {{ form.year.label }} {{ form.year(class="form-control", id="year-select") }}
+        <div class="form-group">
+            {{ form.year.label }} {{ form.year(class="form-control") }}
         </div>
-        <div class="mb-3">
-            {{ form.license_plate.label }} {{ form.license_plate(class="form-control") }}
+        <div class="form-group">
+            {{ form.license_plate.label }} {{ form.license_plate(class="form-control", placeholder="Enter license plate") }}
         </div>
         {{ form.submit(class="btn btn-primary") }}
     </form>
-    <script>
-        document.getElementById('make-select').addEventListener('change', function() {
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const makeSelect = document.querySelector('#make');
+        const modelSelect = document.querySelector('#model');
+        const yearSelect = document.querySelector('#year');
+
+        makeSelect.addEventListener('change', function() {
             const make = this.value;
-            const modelSelect = document.getElementById('model-select');
             modelSelect.innerHTML = '<option value="">Select Model</option>';
-            document.getElementById('year-select').innerHTML = '<option value="">Select Year</option>';
+            yearSelect.innerHTML = '<option value="">Select Year</option>';
             if (make) {
                 fetch(`/api/models/${make}`)
                     .then(response => response.json())
-                    .then(models => {
-                        models.forEach(model => {
+                    .then(data => {
+                        data.forEach(model => {
                             const option = document.createElement('option');
                             option.value = model[0];
-                            option.textContent = model[1];
+                            option.text = model[1];
                             modelSelect.appendChild(option);
                         });
-                    });
+                    })
+                    .catch(error => console.error('Error fetching models:', error));
             }
         });
 
-        document.getElementById('model-select').addEventListener('change', function() {
-            const make = document.getElementById('make-select').value;
+        modelSelect.addEventListener('change', function() {
+            const make = makeSelect.value;
             const model = this.value;
-            const yearSelect = document.getElementById('year-select');
             yearSelect.innerHTML = '<option value="">Select Year</option>';
             if (make && model) {
                 fetch(`/api/years/${make}/${model}`)
                     .then(response => response.json())
-                    .then(years => {
-                        years.forEach(year => {
+                    .then(data => {
+                        data.forEach(year => {
                             const option = document.createElement('option');
                             option.value = year[0];
-                            option.textContent = year[1];
+                            option.text = year[1];
                             yearSelect.appendChild(option);
                         });
-                    });
+                    })
+                    .catch(error => console.error('Error fetching years:', error));
             }
         });
-    </script>
+    });
+</script>
 {% endblock %}

@@ -6,8 +6,8 @@ from wtforms import StringField, PasswordField, SubmitField, IntegerField, TextA
 from wtforms.validators import DataRequired
 from datetime import datetime
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'mysecret'  # Fine for demo
+app = Flask(__name__, static_folder='static')
+app.config['SECRET_KEY'] = 'mysecret'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///C:/Users/user/Desktop/Mechmate/instance/site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -18,7 +18,7 @@ login_manager.login_view = 'login'
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)  # Plaintext for simplicity
+    password = db.Column(db.String(150), nullable=False)
     vehicles = db.relationship('Vehicle', backref='owner', lazy=True)
 
 class Vehicle(db.Model):
@@ -93,9 +93,11 @@ def get_car_years(make, model):
 # Routes
 @app.route('/')
 def home():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    return render_template('home.html')
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():

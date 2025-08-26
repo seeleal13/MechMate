@@ -1,37 +1,94 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MechMate</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>{% block title %}MechMate{% endblock %}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #F6F5F1; /* Light yellow */
+            font-family: Arial, sans-serif;
+            color: #171612; /* Black-gray */
+        }
+        .navbar {
+            background-color: #171612; /* Black-gray */
+        }
+        .navbar-brand, .nav-link {
+            color: #F6F5F1 !important; /* Light yellow */
+        }
+        .nav-link:hover {
+            color: #d4d3cf !important; /* Slightly darker yellow for hover */
+        }
+        .container {
+            margin-top: 20px;
+            background-color: #F6F5F1; /* Light yellow */
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .btn-primary {
+            background-color: #171612; /* Black-gray */
+            border-color: #171612;
+            color: #F6F5F1; /* Light yellow */
+        }
+        .btn-primary:hover {
+            background-color: #2c2a27; /* Slightly lighter black-gray */
+            border-color: #2c2a27;
+        }
+        .btn-secondary, .btn-info {
+            background-color: #F6F5F1; /* Light yellow */
+            border-color: #171612;
+            color: #171612; /* Black-gray */
+        }
+        .btn-secondary:hover, .btn-info:hover {
+            background-color: #d4d3cf; /* Slightly darker yellow */
+            color: #171612;
+        }
+        .alert {
+            margin-top: 10px;
+            background-color: #F6F5F1; /* Light yellow */
+            color: #171612; /* Black-gray */
+            border-color: #171612;
+        }
+        .table {
+            background-color: #F6F5F1; /* Light yellow */
+            color: #171612; /* Black-gray */
+        }
+        .table th, .table td {
+            border-color: #171612;
+        }
+        a {
+            color: #171612; /* Black-gray */
+        }
+        a:hover {
+            color: #2c2a27; /* Slightly lighter black-gray */
+        }
+    </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">MechMate</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
-                </ul>
-            </div>
+    <nav class="navbar navbar-expand-lg">
+        <a class="navbar-brand" href="{{ url_for('home') }}"><img src="/static/logo.png" alt="MechMate" style="height: 40px;"></a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="{{ url_for('home') }}">Home</a>
+            <a class="nav-link" href="{{ url_for('about') }}">About</a>
+            {% if current_user.is_authenticated %}
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('add_vehicle') }}">Add Vehicle</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+            {% endif %}
         </div>
     </nav>
-
-    <!-- Page content -->
-    <div class="container mt-5">
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
         {% block content %}{% endblock %}
     </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

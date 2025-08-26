@@ -1,15 +1,17 @@
-{% extends 'base.html' %}
-{% block title %}Add Log for {{ vehicle.make }} {{ vehicle.model }}{% endblock %}
+{% extends "base.html" %}
 {% block content %}
-    <h2>Add Log for {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</h2>
+<div class="container">
+    <h2>Add Repair Log for {{ vehicle.make }} {{ vehicle.model }}</h2>
     <form method="POST">
         {{ form.hidden_tag() }}
-        <div class="mb-3">
-            {{ form.mileage.label }} {{ form.mileage(class="form-control") }}
+        <div class="form-group">
+            {{ form.mileage.label }} {{ form.mileage(class="form-control", placeholder="Enter mileage (optional)") }}
         </div>
-        <div class="mb-3">
-            {{ form.description.label }} {{ form.description(class="form-control", rows=4) }}
+        <div class="form-group">
+            {{ form.description.label }} {{ form.description(class="form-control", placeholder="Describe the repair") }}
         </div>
         {{ form.submit(class="btn btn-primary") }}
     </form>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+</div>
 {% endblock %}

@@ -1,20 +1,36 @@
-{% extends 'base.html' %}
-{% block title %}Dashboard{% endblock %}
+{% extends "base.html" %}
 {% block content %}
-    <h1>Your Vehicles</h1>
+<div class="container">
+    <h2>Your Vehicles</h2>
     {% if vehicles %}
-        {% for vehicle in vehicles %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5>{{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</h5>
-                    <p>License Plate: {{ vehicle.license_plate }}</p>
-                    <a href="{{ url_for('view_logs', vehicle_id=vehicle.id) }}" class="btn btn-info">View Logs</a>
-                    <a href="{{ url_for('add_log', vehicle_id=vehicle.id) }}" class="btn btn-primary">Add Log</a>
-                </div>
-            </div>
-        {% endfor %}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Make</th>
+                    <th>Model</th>
+                    <th>Year</th>
+                    <th>License Plate</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vehicle in vehicles %}
+                    <tr>
+                        <td>{{ vehicle.make }}</td>
+                        <td>{{ vehicle.model }}</td>
+                        <td>{{ vehicle.year }}</td>
+                        <td>{{ vehicle.license_plate }}</td>
+                        <td>
+                            <a href="{{ url_for('add_log', vehicle_id=vehicle.id) }}" class="btn btn-sm btn-primary">Add Log</a>
+                            <a href="{{ url_for('view_logs', vehicle_id=vehicle.id) }}" class="btn btn-sm btn-info">View Logs</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     {% else %}
-        <p>No vehicles yet.</p>
+        <p>No vehicles added yet.</p>
     {% endif %}
-    <a href="{{ url_for('add_vehicle') }}" class="btn btn-success">Add Vehicle</a>
+    <a href="{{ url_for('add_vehicle') }}" class="btn btn-primary">Add Vehicle</a>
+</div>
 {% endblock %}
