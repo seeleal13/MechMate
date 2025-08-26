@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Logs for {{ vehicle.make }} {{ vehicle.model }}{% endblock %}
+{% block content %}
+    <h2>Logs for {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</h2>
+    <p>License Plate: {{ vehicle.license_plate }}</p>
+    <a href="{{ url_for('add_log', vehicle_id=vehicle.id) }}" class="btn btn-primary mb-3">Add Log</a>
+    {% if logs %}
+        <ul class="list-group">
+            {% for log in logs %}
+                <li class="list-group-item">
+                    <strong>Date:</strong> {{ log.date.strftime('%Y-%m-%d') }}<br>
+                    <strong>Mileage:</strong> {{ log.mileage or 'N/A' }}<br>
+                    <strong>Description:</strong> {{ log.description }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No logs yet.</p>
+    {% endif %}
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back</a>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Add Log for {{ vehicle.make }} {{ vehicle.model }}{% endblock %}
+{% block content %}
+    <h2>Add Log for {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.mileage.label }} {{ form.mileage(class="form-control") }}
+        </div>
+        <div class="mb-3">
+            {{ form.description.label }} {{ form.description(class="form-control", rows=4) }}
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+{% endblock %}

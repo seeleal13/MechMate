@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Add Vehicle{% endblock %}
+{% block content %}
+    <h2>Add Vehicle</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.make.label }} {{ form.make(class="form-control", id="make-select") }}
+        </div>
+        <div class="mb-3">
+            {{ form.model.label }} {{ form.model(class="form-control", id="model-select") }}
+        </div>
+        <div class="mb-3">
+            {{ form.year.label }} {{ form.year(class="form-control", id="year-select") }}
+        </div>
+        <div class="mb-3">
+            {{ form.license_plate.label }} {{ form.license_plate(class="form-control") }}
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+    <script>
+        document.getElementById('make-select').addEventListener('change', function() {
+            const make = this.value;
+            const modelSelect = document.getElementById('model-select');
+            modelSelect.innerHTML = '<option value="">Select Model</option>';
+            document.getElementById('year-select').innerHTML = '<option value="">Select Year</option>';
+            if (make) {
+                fetch(`/api/models/${make}`)
+                    .then(response => response.json())
+                    .then(models => {
+                        models.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model[0];
+                            option.textContent = model[1];
+                            modelSelect.appendChild(option);
+                        });
+                    });
+            }
+        });
+
+        document.getElementById('model-select').addEventListener('change', function() {
+            const make = document.getElementById('make-select').value;
+            const model = this.value;
+            const yearSelect = document.getElementById('year-select');
+            yearSelect.innerHTML = '<option value="">Select Year</option>';
+            if (make && model) {
+                fetch(`/api/years/${make}/${model}`)
+                    .then(response => response.json())
+                    .then(years => {
+                        years.forEach(year => {
+                            const option = document.createElement('option');
+                            option.value = year[0];
+                            option.textContent = year[1];
+                            yearSelect.appendChild(option);
+                        });
+                    });
+            }
+        });
+    </script>
+{% endblock %}
