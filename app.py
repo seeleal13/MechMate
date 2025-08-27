@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, current_user, logout_user, login_required
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, TextAreaField, SelectField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Optional
 from datetime import datetime
 
 app = Flask(__name__, static_folder='static')
@@ -50,13 +50,13 @@ class LoginForm(FlaskForm):
 
 class VehicleForm(FlaskForm):
     make = SelectField('Make', choices=[], validators=[DataRequired()])
-    model = SelectField('Model', choices=[], validators=[DataRequired()])
-    year = SelectField('Year', choices=[], validators=[DataRequired()])
+    model = SelectField('Model', choices=[('', 'Select Model')], validators=[DataRequired()])
+    year = SelectField('Year', choices=[('', 'Select Year')], validators=[DataRequired()], coerce=lambda x: int(x) if x else None)
     license_plate = StringField('License Plate', validators=[DataRequired()])
     submit = SubmitField('Add Vehicle')
 
 class LogForm(FlaskForm):
-    mileage = IntegerField('Mileage (Optional)')
+    mileage = IntegerField('Mileage (Optional)', validators=[Optional()])
     description = TextAreaField('Description', validators=[DataRequired()])
     submit = SubmitField('Add Log')
 
@@ -85,10 +85,10 @@ def get_car_models(make):
         'BMW': [('3 Series', '3 Series'), ('X5', 'X5'), ('5 Series', '5 Series'), ('X3', 'X3')],
         'Acura': [('TLX', 'TLX'), ('MDX', 'MDX'), ('RDX', 'RDX'), ('ILX', 'ILX')]
     }
-    return models.get(make, [('Unknown', 'Unknown')])
+    return models.get(make, [('', 'Select Model')])
 
 def get_car_years(make, model):
-    return [('2020', '2020'), ('2019', '2019'), ('2018', '2018'), ('2017', '2017')]
+    return [(str(year), str(year)) for year in [2020, 2019, 2018, 2017]]
 
 # Routes
 @app.route('/')
@@ -143,18 +143,44 @@ def dashboard():
 def add_vehicle():
     form = VehicleForm()
     form.make.choices = get_car_makes()
-    if form.validate_on_submit():
-        vehicle = Vehicle(
-            make=form.make.data,
-            model=form.model.data,
-            year=int(form.year.data),
-            license_plate=form.license_plate.data,
-            owner_id=current_user.id
-        )
-        db.session.add(vehicle)
-        db.session.commit()
-        flash('Vehicle added!', 'success')
-        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        # Update choices based on submitted data before validation
+        if form.make.data:
+            form.model.choices = get_car_models(form.make.data)
+            if form.model.data:
+                form.year.choices = get_car_years(form.make.data, form.model.data)
+        
+        if form.validate_on_submit():
+            try:
+                vehicle = Vehicle(
+                    make=form.make.data,
+                    model=form.model.data,
+                    year=form.year.data,
+                    license_plate=form.license_plate.data,
+                    owner_id=current_user.id
+                )
+                db.session.add(vehicle)
+                db.session.commit()
+                flash('Vehicle added successfully!', 'success')
+                return redirect(url_for('dashboard'))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error adding vehicle: {str(e)}', 'danger')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f'Error in {field}: {error}', 'danger')
+    
+    # Populate dropdowns for GET or failed POST
+    if form.make.data:
+        form.model.choices = get_car_models(form.make.data)
+        if form.model.data:
+            form.year.choices = get_car_years(form.make.data, form.model.data)
+    else:
+        form.model.choices = [('', 'Select Model')]
+        form.year.choices = [('', 'Select Year')]
+    
     return render_template('add_vehicle.html', form=form)
 
 @app.route('/api/models/<make>')

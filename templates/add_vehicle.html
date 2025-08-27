@@ -2,6 +2,13 @@
 {% block content %}
 <div class="container">
     <h2>Add Vehicle</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     <form method="POST">
         {{ form.hidden_tag() }}
         <div class="form-group">
@@ -26,8 +33,8 @@
         const modelSelect = document.querySelector('#model');
         const yearSelect = document.querySelector('#year');
 
-        makeSelect.addEventListener('change', function() {
-            const make = this.value;
+        // Function to populate models
+        function populateModels(make, selectedModel) {
             modelSelect.innerHTML = '<option value="">Select Model</option>';
             yearSelect.innerHTML = '<option value="">Select Year</option>';
             if (make) {
@@ -38,16 +45,21 @@
                             const option = document.createElement('option');
                             option.value = model[0];
                             option.text = model[1];
+                            if (model[0] === selectedModel) {
+                                option.selected = true;
+                            }
                             modelSelect.appendChild(option);
                         });
+                        if (selectedModel) {
+                            populateYears(make, selectedModel, '{{ form.year.data | safe }}');
+                        }
                     })
                     .catch(error => console.error('Error fetching models:', error));
             }
-        });
+        }
 
-        modelSelect.addEventListener('change', function() {
-            const make = makeSelect.value;
-            const model = this.value;
+        // Function to populate years
+        function populateYears(make, model, selectedYear) {
             yearSelect.innerHTML = '<option value="">Select Year</option>';
             if (make && model) {
                 fetch(`/api/years/${make}/${model}`)
@@ -57,11 +69,32 @@
                             const option = document.createElement('option');
                             option.value = year[0];
                             option.text = year[1];
+                            if (year[0] === selectedYear) {
+                                option.selected = true;
+                            }
                             yearSelect.appendChild(option);
                         });
                     })
                     .catch(error => console.error('Error fetching years:', error));
             }
+        }
+
+        // Initial population
+        const selectedMake = '{{ form.make.data | safe }}';
+        const selectedModel = '{{ form.model.data | safe }}';
+        if (selectedMake) {
+            populateModels(selectedMake, selectedModel);
+        }
+
+        // Event listeners
+        makeSelect.addEventListener('change', function() {
+            populateModels(this.value, '');
+        });
+
+        modelSelect.addEventListener('change', function() {
+            const make = makeSelect.value;
+            const model = this.value;
+            populateYears(make, model, '');
         });
     });
 </script>
