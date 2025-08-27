@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, current_user, logout_user, login_required
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, IntegerField, TextAreaField, SelectField
+from wtforms import StringField, PasswordField, SubmitField, IntegerField, TextAreaField, SelectField, DateField
 from wtforms.validators import DataRequired, Optional
 from datetime import datetime
 
@@ -32,7 +32,7 @@ class Vehicle(db.Model):
 
 class RepairLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.DateTime, default=datetime.utcnow)
+    date = db.Column(db.DateTime, nullable=False)
     mileage = db.Column(db.Integer)
     description = db.Column(db.Text, nullable=False)
     vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'), nullable=False)
@@ -55,10 +55,24 @@ class VehicleForm(FlaskForm):
     license_plate = StringField('License Plate', validators=[DataRequired()])
     submit = SubmitField('Add Vehicle')
 
+class EditVehicleForm(FlaskForm):
+    make = SelectField('Make', choices=[], validators=[DataRequired()])
+    model = SelectField('Model', choices=[('', 'Select Model')], validators=[DataRequired()])
+    year = SelectField('Year', choices=[('', 'Select Year')], validators=[DataRequired()], coerce=lambda x: int(x) if x else None)
+    license_plate = StringField('License Plate', validators=[DataRequired()])
+    submit = SubmitField('Update Vehicle')
+
 class LogForm(FlaskForm):
+    date = DateField('Date', validators=[DataRequired()], format='%Y-%m-%d')
     mileage = IntegerField('Mileage (Optional)', validators=[Optional()])
     description = TextAreaField('Description', validators=[DataRequired()])
     submit = SubmitField('Add Log')
+
+class EditLogForm(FlaskForm):
+    date = DateField('Date', validators=[DataRequired()], format='%Y-%m-%d')
+    mileage = IntegerField('Mileage (Optional)', validators=[Optional()])
+    description = TextAreaField('Description', validators=[DataRequired()])
+    submit = SubmitField('Update Log')
 
 # User Loader
 @login_manager.user_loader
@@ -145,7 +159,6 @@ def add_vehicle():
     form.make.choices = get_car_makes()
     
     if request.method == 'POST':
-        # Update choices based on submitted data before validation
         if form.make.data:
             form.model.choices = get_car_models(form.make.data)
             if form.model.data:
@@ -172,7 +185,6 @@ def add_vehicle():
                 for error in errors:
                     flash(f'Error in {field}: {error}', 'danger')
     
-    # Populate dropdowns for GET or failed POST
     if form.make.data:
         form.model.choices = get_car_models(form.make.data)
         if form.model.data:
@@ -182,6 +194,64 @@ def add_vehicle():
         form.year.choices = [('', 'Select Year')]
     
     return render_template('add_vehicle.html', form=form)
+
+@app.route('/edit_vehicle/<int:vehicle_id>', methods=['GET', 'POST'])
+@login_required
+def edit_vehicle(vehicle_id):
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    if vehicle.owner_id != current_user.id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('dashboard'))
+    form = EditVehicleForm()
+    form.make.choices = get_car_makes()
+    if request.method == 'POST':
+        if form.make.data:
+            form.model.choices = get_car_models(form.make.data)
+            if form.model.data:
+                form.year.choices = get_car_years(form.make.data, form.model.data)
+        
+        if form.validate_on_submit():
+            try:
+                vehicle.make = form.make.data
+                vehicle.model = form.model.data
+                vehicle.year = form.year.data
+                vehicle.license_plate = form.license_plate.data
+                db.session.commit()
+                flash('Vehicle updated successfully!', 'success')
+                return redirect(url_for('dashboard'))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error updating vehicle: {str(e)}', 'danger')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f'Error in {field}: {error}', 'danger')
+    
+    if request.method == 'GET':
+        form.make.data = vehicle.make
+        form.model.data = vehicle.model
+        form.year.data = str(vehicle.year)
+        form.license_plate.data = vehicle.license_plate
+        form.model.choices = get_car_models(vehicle.make)
+        form.year.choices = get_car_years(vehicle.make, vehicle.model)
+    
+    return render_template('edit_vehicle.html', form=form, vehicle=vehicle)
+
+@app.route('/delete_vehicle/<int:vehicle_id>', methods=['POST'])
+@login_required
+def delete_vehicle(vehicle_id):
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    if vehicle.owner_id != current_user.id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('dashboard'))
+    try:
+        db.session.delete(vehicle)
+        db.session.commit()
+        flash('Vehicle deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting vehicle: {str(e)}', 'danger')
+    return redirect(url_for('dashboard'))
 
 @app.route('/api/models/<make>')
 @login_required
@@ -204,16 +274,64 @@ def add_log(vehicle_id):
         return redirect(url_for('dashboard'))
     form = LogForm()
     if form.validate_on_submit():
-        log = RepairLog(
-            mileage=form.mileage.data,
-            description=form.description.data,
-            vehicle_id=vehicle_id
-        )
-        db.session.add(log)
-        db.session.commit()
-        flash('Log added!', 'success')
-        return redirect(url_for('view_logs', vehicle_id=vehicle_id))
+        try:
+            log = RepairLog(
+                date=form.date.data,
+                mileage=form.mileage.data,
+                description=form.description.data,
+                vehicle_id=vehicle_id
+            )
+            db.session.add(log)
+            db.session.commit()
+            flash('Log added successfully!', 'success')
+            return redirect(url_for('view_logs', vehicle_id=vehicle_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding log: {str(e)}', 'danger')
     return render_template('add_log.html', form=form, vehicle=vehicle)
+
+@app.route('/vehicle/<int:vehicle_id>/edit_log/<int:log_id>', methods=['GET', 'POST'])
+@login_required
+def edit_log(vehicle_id, log_id):
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    log = RepairLog.query.get_or_404(log_id)
+    if vehicle.owner_id != current_user.id or log.vehicle_id != vehicle_id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('dashboard'))
+    form = EditLogForm()
+    if form.validate_on_submit():
+        try:
+            log.date = form.date.data
+            log.mileage = form.mileage.data
+            log.description = form.description.data
+            db.session.commit()
+            flash('Log updated successfully!', 'success')
+            return redirect(url_for('view_logs', vehicle_id=vehicle_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating log: {str(e)}', 'danger')
+    elif request.method == 'GET':
+        form.date.data = log.date
+        form.mileage.data = log.mileage
+        form.description.data = log.description
+    return render_template('edit_log.html', form=form, vehicle=vehicle, log=log)
+
+@app.route('/vehicle/<int:vehicle_id>/delete_log/<int:log_id>', methods=['POST'])
+@login_required
+def delete_log(vehicle_id, log_id):
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    log = RepairLog.query.get_or_404(log_id)
+    if vehicle.owner_id != current_user.id or log.vehicle_id != vehicle_id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('dashboard'))
+    try:
+        db.session.delete(log)
+        db.session.commit()
+        flash('Log deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting log: {str(e)}', 'danger')
+    return redirect(url_for('view_logs', vehicle_id=vehicle_id))
 
 @app.route('/vehicle/<int:vehicle_id>/logs')
 @login_required
@@ -222,7 +340,7 @@ def view_logs(vehicle_id):
     if vehicle.owner_id != current_user.id:
         flash('Not your vehicle.', 'danger')
         return redirect(url_for('dashboard'))
-    logs = vehicle.logs.order_by(RepairLog.date.desc()).all()
+    logs = RepairLog.query.filter_by(vehicle_id=vehicle_id).order_by(RepairLog.date.desc()).all()
     return render_template('view_logs.html', vehicle=vehicle, logs=logs)
 
 if __name__ == '__main__':
