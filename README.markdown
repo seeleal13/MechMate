@@ -59,3 +59,13 @@ Visit the deployed app at: [https://seeleal13.pythonanywhere.com/](https://seele
 
 ## My Journey
 MechMate was my passion project for the Summer of Making hackclub event. I built a sleek Flask app with custom log dates, vehicle/log management, and a light yellow/black-gray theme. Deploying to PythonAnywhere was a hurdle—`sqlite3.OperationalError` issues with `/tmp/site.db` drove me nuts! After fixing database initialization, it’s live, though the dashboard occasionally lags or misses vehicles.
+
+## 📝 Notes
+- If logo.png is missing in static/, the app will work but without the logo.
+- The dashboard may load slowly or fail to display vehicles occasionally.
+- Uses SQLite (site.db) locally and /tmp/site.db on PythonAnywhere for database storage.
+
+## 🔧 Future Improvements
+- Add support for maintenance reminders and notifications.
+- Implement a dark/light theme toggle.
+- Export logs to CSV or PDF for user backups.
