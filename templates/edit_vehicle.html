@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container">
+<div class="container mt-5">
     <h2>Edit Vehicle: {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.license_plate }})</h2>
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -12,86 +12,72 @@
     <form method="POST">
         {{ form.hidden_tag() }}
         <div class="form-group">
-            {{ form.make.label }} {{ form.make(class="form-control") }}
+            {{ form.make.label }} 
+            {{ form.make(class="form-control make-select", style="display: " + ("none" if form.use_custom_make.data else "block")) }}
+            {{ form.use_custom_make(id="use_custom_make") }} {{ form.use_custom_make.label }}
+            {{ form.custom_make(class="form-control mt-2 custom-make-input", style="display: " + ("block" if form.use_custom_make.data else "none"), disabled=(not form.use_custom_make.data), placeholder="Enter custom make") }}
         </div>
         <div class="form-group">
-            {{ form.model.label }} {{ form.model(class="form-control") }}
+            {{ form.model.label }} 
+            {{ form.model(class="form-control model-select", style="display: " + ("none" if form.use_custom_make.data else "block")) }}
+            {{ form.custom_model(class="form-control mt-2 custom-model-input", style="display: " + ("block" if form.use_custom_make.data else "none"), disabled=(not form.use_custom_make.data), placeholder="Enter custom model") }}
         </div>
         <div class="form-group">
-            {{ form.year.label }} {{ form.year(class="form-control") }}
+            {{ form.year.label }} 
+            {{ form.year(class="form-control year-select", style="display: " + ("none" if form.use_custom_make.data else "block")) }}
+            {{ form.custom_year(class="form-control mt-2 custom-year-input", style="display: " + ("block" if form.use_custom_make.data else "none"), disabled=(not form.use_custom_make.data), placeholder="Enter custom year") }}
         </div>
         <div class="form-group">
-            {{ form.license_plate.label }} {{ form.license_plate(class="form-control", placeholder="Enter license plate") }}
+            {{ form.license_plate.label }} 
+            {{ form.license_plate(class="form-control", placeholder="Enter license plate") }}
         </div>
-        {{ form.submit(class="btn btn-primary") }}
+        {{ form.submit(class="btn btn-primary mt-3") }}
     </form>
     <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
 </div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const makeSelect = document.querySelector('#make');
-        const modelSelect = document.querySelector('#model');
-        const yearSelect = document.querySelector('#year');
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('use_custom_make');
+    const makeSelect = document.querySelector('.make-select');
+    const customMakeInput = document.querySelector('.custom-make-input');
+    const modelSelect = document.querySelector('.model-select');
+    const customModelInput = document.querySelector('.custom-model-input');
+    const yearSelect = document.querySelector('.year-select');
+    const customYearInput = document.querySelector('.custom-year-input');
 
-        function populateModels(make, selectedModel) {
-            modelSelect.innerHTML = '<option value="">Select Model</option>';
-            yearSelect.innerHTML = '<option value="">Select Year</option>';
-            if (make) {
-                fetch(`/api/models/${make}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.forEach(model => {
-                            const option = document.createElement('option');
-                            option.value = model[0];
-                            option.text = model[1];
-                            if (model[0] === selectedModel) {
-                                option.selected = true;
-                            }
-                            modelSelect.appendChild(option);
-                        });
-                        if (selectedModel) {
-                            populateYears(make, selectedModel, '{{ form.year.data | safe }}');
-                        }
-                    })
-                    .catch(error => console.error('Error fetching models:', error));
-            }
+    const updateFields = () => {
+        if (checkbox.checked) {
+            makeSelect.style.display = 'none';
+            makeSelect.disabled = true;
+            customMakeInput.style.display = 'block';
+            customMakeInput.disabled = false;
+            modelSelect.style.display = 'none';
+            modelSelect.disabled = true;
+            customModelInput.style.display = 'block';
+            customModelInput.disabled = false;
+            yearSelect.style.display = 'none';
+            yearSelect.disabled = true;
+            customYearInput.style.display = 'block';
+            customYearInput.disabled = false;
+        } else {
+            makeSelect.style.display = 'block';
+            makeSelect.disabled = false;
+            customMakeInput.style.display = 'none';
+            customMakeInput.disabled = true;
+            modelSelect.style.display = 'block';
+            modelSelect.disabled = false;
+            customModelInput.style.display = 'none';
+            customModelInput.disabled = true;
+            yearSelect.style.display = 'block';
+            yearSelect.disabled = false;
+            customYearInput.style.display = 'none';
+            customYearInput.disabled = true;
         }
+    };
 
-        function populateYears(make, model, selectedYear) {
-            yearSelect.innerHTML = '<option value="">Select Year</option>';
-            if (make && model) {
-                fetch(`/api/years/${make}/${model}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.forEach(year => {
-                            const option = document.createElement('option');
-                            option.value = year[0];
-                            option.text = year[1];
-                            if (year[0] === selectedYear) {
-                                option.selected = true;
-                            }
-                            yearSelect.appendChild(option);
-                        });
-                    })
-                    .catch(error => console.error('Error fetching years:', error));
-            }
-        }
-
-        const selectedMake = '{{ form.make.data | safe }}';
-        const selectedModel = '{{ form.model.data | safe }}';
-        if (selectedMake) {
-            populateModels(selectedMake, selectedModel);
-        }
-
-        makeSelect.addEventListener('change', function() {
-            populateModels(this.value, '');
-        });
-
-        modelSelect.addEventListener('change', function() {
-            const make = makeSelect.value;
-            const model = this.value;
-            populateYears(make, model, '');
-        });
-    });
+    checkbox.addEventListener('change', updateFields);
+    updateFields(); // Initialize on page load
+});
 </script>
 {% endblock %}

@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, current_user, logout_user, login_required
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, IntegerField, TextAreaField, SelectField, DateField
+from wtforms import StringField, PasswordField, SubmitField, IntegerField, TextAreaField, SelectField, DateField, BooleanField
 from wtforms.validators import DataRequired, Optional
 from datetime import datetime
 
@@ -49,18 +49,76 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Login')
 
 class VehicleForm(FlaskForm):
-    make = SelectField('Make', choices=[], validators=[DataRequired()])
-    model = SelectField('Model', choices=[('', 'Select Model')], validators=[DataRequired()])
-    year = SelectField('Year', choices=[('', 'Select Year')], validators=[DataRequired()], coerce=lambda x: int(x) if x else None)
+    make = SelectField('Make', choices=[], validators=[Optional()])
+    custom_make = StringField('Custom Make', validators=[Optional()])
+    use_custom_make = BooleanField('Use Custom Vehicle Details')
+    model = SelectField('Model', choices=[('', 'Select Model')], validators=[Optional()])
+    custom_model = StringField('Custom Model', validators=[Optional()])
+    year = SelectField('Year', choices=[('', 'Select Year')], validators=[Optional()], coerce=lambda x: int(x) if x else None)
+    custom_year = IntegerField('Custom Year', validators=[Optional()])
     license_plate = StringField('License Plate', validators=[DataRequired()])
     submit = SubmitField('Add Vehicle')
 
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators=extra_validators):
+            return False
+        if self.use_custom_make.data:
+            if not self.custom_make.data:
+                self.custom_make.errors.append('Custom Make is required if "Use Custom Vehicle Details" is checked.')
+                return False
+            if not self.custom_model.data:
+                self.custom_model.errors.append('Custom Model is required if "Use Custom Vehicle Details" is checked.')
+                return False
+            if not self.custom_year.data:
+                self.custom_year.errors.append('Custom Year is required if "Use Custom Vehicle Details" is checked.')
+                return False
+        else:
+            if not self.make.data:
+                self.make.errors.append('Make is required unless using custom vehicle details.')
+                return False
+            if not self.model.data:
+                self.model.errors.append('Model is required unless using custom vehicle details.')
+                return False
+            if not self.year.data:
+                self.year.errors.append('Year is required unless using custom vehicle details.')
+                return False
+        return True
+
 class EditVehicleForm(FlaskForm):
-    make = SelectField('Make', choices=[], validators=[DataRequired()])
-    model = SelectField('Model', choices=[('', 'Select Model')], validators=[DataRequired()])
-    year = SelectField('Year', choices=[('', 'Select Year')], validators=[DataRequired()], coerce=lambda x: int(x) if x else None)
+    make = SelectField('Make', choices=[], validators=[Optional()])
+    custom_make = StringField('Custom Make', validators=[Optional()])
+    use_custom_make = BooleanField('Use Custom Vehicle Details')
+    model = SelectField('Model', choices=[('', 'Select Model')], validators=[Optional()])
+    custom_model = StringField('Custom Model', validators=[Optional()])
+    year = SelectField('Year', choices=[('', 'Select Year')], validators=[Optional()], coerce=lambda x: int(x) if x else None)
+    custom_year = IntegerField('Custom Year', validators=[Optional()])
     license_plate = StringField('License Plate', validators=[DataRequired()])
     submit = SubmitField('Update Vehicle')
+
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators=extra_validators):
+            return False
+        if self.use_custom_make.data:
+            if not self.custom_make.data:
+                self.custom_make.errors.append('Custom Make is required if "Use Custom Vehicle Details" is checked.')
+                return False
+            if not self.custom_model.data:
+                self.custom_model.errors.append('Custom Model is required if "Use Custom Vehicle Details" is checked.')
+                return False
+            if not self.custom_year.data:
+                self.custom_year.errors.append('Custom Year is required if "Use Custom Vehicle Details" is checked.')
+                return False
+        else:
+            if not self.make.data:
+                self.make.errors.append('Make is required unless using custom vehicle details.')
+                return False
+            if not self.model.data:
+                self.model.errors.append('Model is required unless using custom vehicle details.')
+                return False
+            if not self.year.data:
+                self.year.errors.append('Year is required unless using custom vehicle details.')
+                return False
+        return True
 
 class LogForm(FlaskForm):
     date = DateField('Date', validators=[DataRequired()], format='%Y-%m-%d')
@@ -159,7 +217,7 @@ def add_vehicle():
     form.make.choices = get_car_makes()
     
     if request.method == 'POST':
-        if form.make.data:
+        if form.make.data and not form.use_custom_make.data:
             form.model.choices = get_car_models(form.make.data)
             if form.model.data:
                 form.year.choices = get_car_years(form.make.data, form.model.data)
@@ -167,9 +225,9 @@ def add_vehicle():
         if form.validate_on_submit():
             try:
                 vehicle = Vehicle(
-                    make=form.make.data,
-                    model=form.model.data,
-                    year=form.year.data,
+                    make=form.custom_make.data if form.use_custom_make.data else form.make.data,
+                    model=form.custom_model.data if form.use_custom_make.data else form.model.data,
+                    year=form.custom_year.data if form.use_custom_make.data else form.year.data,
                     license_plate=form.license_plate.data,
                     owner_id=current_user.id
                 )
@@ -185,7 +243,7 @@ def add_vehicle():
                 for error in errors:
                     flash(f'Error in {field}: {error}', 'danger')
     
-    if form.make.data:
+    if form.make.data and not form.use_custom_make.data:
         form.model.choices = get_car_models(form.make.data)
         if form.model.data:
             form.year.choices = get_car_years(form.make.data, form.model.data)
@@ -205,16 +263,16 @@ def edit_vehicle(vehicle_id):
     form = EditVehicleForm()
     form.make.choices = get_car_makes()
     if request.method == 'POST':
-        if form.make.data:
+        if form.make.data and not form.use_custom_make.data:
             form.model.choices = get_car_models(form.make.data)
             if form.model.data:
                 form.year.choices = get_car_years(form.make.data, form.model.data)
         
         if form.validate_on_submit():
             try:
-                vehicle.make = form.make.data
-                vehicle.model = form.model.data
-                vehicle.year = form.year.data
+                vehicle.make = form.custom_make.data if form.use_custom_make.data else form.make.data
+                vehicle.model = form.custom_model.data if form.use_custom_make.data else form.model.data
+                vehicle.year = form.custom_year.data if form.use_custom_make.data else form.year.data
                 vehicle.license_plate = form.license_plate.data
                 db.session.commit()
                 flash('Vehicle updated successfully!', 'success')
@@ -229,8 +287,12 @@ def edit_vehicle(vehicle_id):
     
     if request.method == 'GET':
         form.make.data = vehicle.make
+        form.custom_make.data = vehicle.make if vehicle.make not in [make[0] for make in get_car_makes()] else ''
+        form.use_custom_make.data = vehicle.make not in [make[0] for make in get_car_makes()]
         form.model.data = vehicle.model
+        form.custom_model.data = vehicle.model if vehicle.model not in [model[0] for model in get_car_models(vehicle.make)] else ''
         form.year.data = str(vehicle.year)
+        form.custom_year.data = vehicle.year if str(vehicle.year) not in [str(year) for year in [2020, 2019, 2018, 2017]] else None
         form.license_plate.data = vehicle.license_plate
         form.model.choices = get_car_models(vehicle.make)
         form.year.choices = get_car_years(vehicle.make, vehicle.model)
